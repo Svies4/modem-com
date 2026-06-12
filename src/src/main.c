@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         }
     }
 
-    if (arguments.show_phone) {
+    if (arguments.show_apn) {
         if (arguments.debug_mode) printf("[DEBUG] Fetching APN...\n");
         data.current_expect = EXPECT_NOTHING;
         if(send_at_command(fd, "AT+CGDCONT?", &data, 3, 3000)){
