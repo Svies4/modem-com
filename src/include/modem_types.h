@@ -32,7 +32,7 @@ typedef struct
     List neighbor;
     float signal_strength;
     char ip_address[64];
-    char temperature[16];
+    List temperatures;
     List apn;
     char phone_number[32];
     List sms;

@@ -12,8 +12,8 @@ void print_results(const ModemData *data, struct arguments *req)
         { &req->show_net_status,   "network_status", "Network status", TYPE_STRING,    &data->net_status },
         { &req->show_band,   "mobile_band", "Mobile band", TYPE_STRING,    &data->band },
         { &req->show_sim_status,   "sim_status", "SIM status", TYPE_STRING,    &data->sim_status },
-        { &req->show_temp, "temperatures", "Temperatures", TYPE_STRING, &data->temperature },
         { &req->show_phone, "number", "Phone Number", TYPE_STRING, &data->phone_number },
+        { &req->show_temp, "temperatures", "Temperatures", TYPE_LIST, &data->temperatures },
         { &req->show_sms,      "sms",             "SMS Messages", TYPE_LIST,    &data->sms },
         { &req->show_neighbor, "neighbor_cells", "Neighbor Cells", TYPE_LIST, &data->neighbor },
         { &req->show_ip, "ip_addresses", "IP Addresses", TYPE_LIST, &data->ip_addresses },
@@ -92,4 +92,16 @@ void trim(char *s){
         }
     }
     s[i + 1] = '\0';
+}
+
+void list_add(List *list, size_t needed_len)
+{
+    if (list->capacity == 0) {
+        list->capacity = 2;
+        list->data = malloc(list->capacity * sizeof(char *));
+    } else if (list->count >= list->capacity) {
+        list->capacity += 2;
+        list->data = realloc(list->data, list->capacity * sizeof(char *));
+    } 
+    list->data[list->count] = malloc(needed_len);
 }

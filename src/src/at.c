@@ -14,13 +14,13 @@ static long long get_time_ms() {
     return (((long long)tv.tv_sec) * 1000) + (tv.tv_usec / 1000);
 }
 
-static void extract_and_route_lines(char *line_buffer, int *buf_len, ModemData *data) {
+static void extract_and_route_lines(char *line_buffer, int *buf_len, ModemData *data, ModemHandler *handler) {
     char *line_end;
     
     while ((line_end = strstr(line_buffer, "\r\n")) != NULL) {
         *line_end = '\0';
         
-        route_response(line_buffer, data);
+        route_response(line_buffer, data, handler);
 
         int rem = *buf_len - ((line_end + 2) - line_buffer);
         memmove(line_buffer, line_end + 2, rem);
@@ -30,7 +30,7 @@ static void extract_and_route_lines(char *line_buffer, int *buf_len, ModemData *
     }
 }
 
-static int execute_single_attempt(int fd, const char *cmd, ModemData *data, int timeout_ms) {
+static int execute_single_attempt(int fd, const char *cmd, ModemData *data, ModemHandler *handler, int timeout_ms) {
     char read_buf[256];
     char line_buffer[2048] = {0};
     int buf_len = 0;
@@ -57,7 +57,7 @@ static int execute_single_attempt(int fd, const char *cmd, ModemData *data, int 
             if (bytes > 0) {
                 strncat(line_buffer, read_buf, sizeof(line_buffer) - buf_len - 1);
                 buf_len += bytes;
-                extract_and_route_lines(line_buffer, &buf_len, data);
+                extract_and_route_lines(line_buffer, &buf_len, data, handler);
                 time_left = 500; 
             }
         }
@@ -66,9 +66,10 @@ static int execute_single_attempt(int fd, const char *cmd, ModemData *data, int 
     return (data->command_finished && !data->has_error) ? 0 : -1;
 }
 
-int send_at_command(int fd, const char *cmd, ModemData *data, int max_retries, int timeout_ms) {
+int send_at_command(int fd, const char *cmd, ModemData *data, ModemHandler *handler, int max_retries, int timeout_ms) {
+    
     for (int attempt = 1; attempt <= max_retries; attempt++) {
-        if (execute_single_attempt(fd, cmd, data, timeout_ms) == 0) {
+        if (execute_single_attempt(fd, cmd, data, handler, timeout_ms) == 0) {
             return 0;
         }
         sleep(1); 

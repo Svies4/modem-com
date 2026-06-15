@@ -27,5 +27,6 @@ typedef struct {
 
 void print_results(const ModemData *data, struct arguments *req);
 void trim (char *s);
+void list_add(List *list, size_t needed_len);
 
 #endif
