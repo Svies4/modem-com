@@ -11,13 +11,13 @@
 #include "at.h"
 #include "parser.h"
 
-static int running = 1;
-
-void signalHandler(int sig)
-{
-    printf("signal received: %d\n", sig);
-    running = 0;
-}
+typedef struct {
+    int *show_flag;
+    const char *debug_msg;
+    ParseState expect_state;
+    const char *command;
+    int timeout_ms;
+} CommandExecRule;
 
 int main(int argc, char **argv)
 {
@@ -52,116 +52,38 @@ int main(int argc, char **argv)
         printf("[DEBUG] Detected Model: %s\n", strlen(data.model) ? data.model : "UNKNOWN");
     }
 
-    if (arguments.show_imei) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching IMEI...\n");
-        data.current_expect = EXPECT_IMEI;
-        if(send_at_command(fd, handler->at_rules->imei, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-        data.current_expect = EXPECT_NOTHING;
-    }
+    CommandExecRule exec_rules[] = {
+        { &arguments.show_imei,       "Fetching IMEI...",            EXPECT_IMEI,         handler->at_rules->imei,           3000 },
+        { &arguments.show_info,       "Fetching INFO...",            EXPECT_MANUFACTURER, handler->at_rules->manufacturer,   3000 },
+        { &arguments.show_operator,   "Fetching CURRENT OPERATOR...",EXPECT_NOTHING,      handler->at_rules->operator,       3000 },
+        { &arguments.show_net_status, "Fetching NETWORK STATUS...",  EXPECT_NOTHING,      handler->at_rules->net_stat,       3000 },
+        { &arguments.show_band,       "Fetching MOBILE BAND...",     EXPECT_NOTHING,      handler->at_rules->mobile_band,    3000 },
+        { &arguments.show_sim_status, "Fetching SIM STATUS...",      EXPECT_NOTHING,      handler->at_rules->sim_stat,       3000 },
+        { &arguments.show_cell,       "Fetching SERVING CELL...",    EXPECT_NOTHING,      handler->at_rules->serving_cell,   3000 },
+        { &arguments.show_neighbor,   "Fetching NEIGHBOR CELLS...",  EXPECT_NOTHING,      handler->at_rules->neighbour_cell, 3000 },
+        { &arguments.show_signal,     "Fetching SIGNAL STRENGTH...", EXPECT_NOTHING,      handler->at_rules->signal,         3000 },
+        { &arguments.show_ip,         "Fetching IP ADDRESSES...",    EXPECT_NOTHING,      handler->at_rules->ip_addr,        3000 },
+        { &arguments.show_sms,        "Configuring SMS MODE...",     EXPECT_NOTHING,      handler->at_rules->set_print_mode, 3000 },
+        { &arguments.show_sms,        "Fetching SMS MESSAGES...",    EXPECT_NOTHING,      handler->at_rules->sms,            5000 },
+        { &arguments.show_temp,       "Fetching TEMPERATURES...",    EXPECT_NOTHING,      handler->at_rules->temp,           3000 },
+        { &arguments.show_phone,      "Fetching PHONE NUMBER...",    EXPECT_NOTHING,      handler->at_rules->number,         3000 },
+        { &arguments.show_apn,        "Fetching APN...",             EXPECT_NOTHING,      handler->at_rules->apn,            3000 },    
+        { NULL, NULL, EXPECT_NOTHING, NULL, 0 }
+    };
 
-    if (arguments.show_info) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching INFO...\n");
-        data.current_expect = EXPECT_MANUFACTURER;
-        if(send_at_command(fd, handler->at_rules->manufacturer, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-        data.current_expect = EXPECT_NOTHING;
-    }
-
-    if (arguments.show_operator) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching CURRENT OPERATOR...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->operator, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_net_status) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching NETWORK STATUS...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->net_stat, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_band) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching MOBILE BAND...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->mobile_band, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_sim_status) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching SIM STATUS...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->sim_stat, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_cell) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching SERVING CELL...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->serving_cell, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_neighbor) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching SERVING CELL...\n");
-        data.current_expect = EXPECT_CELLS;
-        if(send_at_command(fd, handler->at_rules->neighbour_cell, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-        data.current_expect = EXPECT_NOTHING;
-    }
-
-    if (arguments.show_signal) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching SIGNAL STRENGTH...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->signal, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_ip) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching IP ADDRESSES...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->ip_addr, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_sms) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching SMS MESSAGES...\n");
-        send_at_command(fd, handler->at_rules->set_print_mode, &data, handler, 3, 3000);
-        send_at_command(fd, handler->at_rules->sms, &data, handler, 3, 5000);
-    }
-
-    if (arguments.show_temp) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching TEMPERATURES...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->temp, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_phone) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching PHONE NUMBER...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->number, &data, handler, 3, 3000)){
-            printf("ERROR\n");
-        }
-    }
-
-    if (arguments.show_apn) {
-        if (arguments.debug_mode) printf("[DEBUG] Fetching APN...\n");
-        data.current_expect = EXPECT_NOTHING;
-        if(send_at_command(fd, handler->at_rules->apn, &data, handler, 3, 3000)){
-            printf("ERROR\n");
+    for (int i = 0; exec_rules[i].show_flag != NULL; i++) {
+        if (*(exec_rules[i].show_flag)) {
+            if (exec_rules[i].command == NULL) {
+                if (arguments.debug_mode) printf("[DEBUG] Skipping: %s (Not supported by modem)\n", exec_rules[i].debug_msg);
+                continue;
+            }
+            if (arguments.debug_mode) printf("[DEBUG] %s\n", exec_rules[i].debug_msg);
+            
+            data.current_expect = exec_rules[i].expect_state;
+            if (send_at_command(fd, exec_rules[i].command, &data, handler, 3, exec_rules[i].timeout_ms)) {
+                printf("ERROR\n");
+            }
+            data.current_expect = EXPECT_NOTHING;
         }
     }
 
