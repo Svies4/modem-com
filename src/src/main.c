@@ -117,5 +117,12 @@ int main(int argc, char **argv)
         free(data.ip_addresses.data);
     }
 
+    if (data.apn.data != NULL) {
+        for (int i = 0; i < data.apn.count; i++) {
+            free(data.apn.data[i]);
+        }
+        free(data.apn.data);
+    }
+
     return 0;
 }
